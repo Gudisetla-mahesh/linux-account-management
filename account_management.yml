@@ -1,0 +1,38 @@
+---
+- name: Linux Account Management
+  hosts: linux_servers
+  become: true
+
+  vars:
+    valid_actions:
+      - unlock
+      - reset
+      - unlock-reset
+
+  tasks:
+
+    - name: Validate account action
+      ansible.builtin.assert:
+        that:
+          - account_action is defined
+          - account_action in valid_actions
+        fail_msg: >-
+          Invalid account_action '{{ account_action | default('undefined') }}'.
+          Allowed values: unlock, reset, unlock-reset
+
+    - name: Validate username
+      ansible.builtin.assert:
+        that:
+          - username is defined
+          - username | length > 0
+        fail_msg: "Username must be provided."
+
+    - name: Copy Python script
+      ansible.builtin.copy:
+        src: account_management.py
+        dest: /usr/local/bin/account_management.py
+        mode: '0755'
+
+    - name: Run account management
+      ansible.builtin.command:
+        cmd: "python3 /usr/local/bin/account_management.py --user {{ username }} --action {{ account_action }}"
